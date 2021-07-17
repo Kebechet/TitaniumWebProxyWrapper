@@ -14,7 +14,7 @@ using Titanium.Web.Proxy.Http;
 using Titanium.Web.Proxy.Models;
 using Titanium.Web.Proxy.Network;
 
-//-Proxy is asynchronously multi-threaded, so request/response handlers will be fired as soon as we receive data from client/server asynchronously.This won't be in order necessarily.
+//Proxy is asynchronously multi-threaded, so request/response handlers will be fired as soon as we receive data from client/server asynchronously.This won't be in order necessarily.
 //To store data specific to a request/response sequence, one can use SessionEventArgs.UserData property.
 //https://github.com/justcoding121/Titanium-Web-Proxy
 
@@ -43,7 +43,7 @@ namespace TitaniumWebProxyWrapper
         private ErrorDelegate OnErrorAction = null;
         private bool _isGlobalProxy = false;
 
-        public PacketSniffer(IPAddress ip = null, int port = 0, bool persistCertificate = true, bool ignoreImages = false, bool ignoreJavaScriptRequests = false, bool ignoreCss = false)
+        public PacketSniffer(IPAddress listeningOnIp = null, int listeningOnPort = 0, bool persistCertificate = true, bool ignoreImages = false, bool ignoreJavaScriptRequests = false, bool ignoreCss = false)
         {
             IgnoreImages = ignoreImages;
             IgnoreJavaScriptRequests = ignoreJavaScriptRequests;
@@ -124,7 +124,7 @@ namespace TitaniumWebProxyWrapper
                 _proxyServer.CertificateManager.LoadRootCertificate(CertPfxPath, CERT_PFX_PASS, true, X509KeyStorageFlags.Exportable);
             }
 
-            var explicitEndPoint = new ExplicitProxyEndPoint(ip ?? IPAddress.Any, port == 0 ? GetFreeTcpPort() : 8000, true);
+            var explicitEndPoint = new ExplicitProxyEndPoint(listeningOnIp ?? IPAddress.Any, listeningOnPort == 0 ? GetFreeTcpPort() : 8000, true);
             ProxyPort = explicitEndPoint.Port;
 
             Debug.WriteLine($"Titanium is listening on {explicitEndPoint.IpAddress}:{explicitEndPoint.Port}");
@@ -138,7 +138,7 @@ namespace TitaniumWebProxyWrapper
             //explicitEndPoint.BeforeTunnelConnect += OnBeforeTunnelConnect;
 
             // Only explicit proxies can be set as system proxy!
-            _isGlobalProxy = Equals(ip, IPAddress.Any);
+            _isGlobalProxy = Equals(listeningOnIp, IPAddress.Any);
             if (_isGlobalProxy)
             {
                 _proxyServer.SetAsSystemHttpProxy(explicitEndPoint);
@@ -214,7 +214,7 @@ namespace TitaniumWebProxyWrapper
                 string url = e?.HttpClient?.Request?.Url;
                 string parameters = (e?.HttpClient?.Request?.HasBody ?? false) ? await e.GetRequestBodyAsString() : "";
                 string redirectUrl = String.Empty;
-                string cancelRequestHtml = String.Empty;// To cancel a request with a custom HTML content
+                string cancelRequestHtml = String.Empty; // To cancel a request with a custom HTML content
                 HeaderCollection requestHeaders = e?.HttpClient?.Request?.Headers;
 
                 if (OnRequestAction == null) return;
@@ -231,40 +231,13 @@ namespace TitaniumWebProxyWrapper
                     //set
                     e?.HttpClient?.Request?.Headers?.Clear();
                     e?.HttpClient?.Request?.Headers?.AddHeaders(headers);
-                    if(e?.HttpClient?.Request?.Url != null) e.HttpClient.Request.Url = url;
+                    e.HttpClient.Request.Url = url;
                     if(e?.HttpClient?.Request?.HasBody ?? false) await Task.Run(() => e.SetRequestBodyString(parameters));
                 }
             }
         }
         public async Task OnResponse(object sender, SessionEventArgs e)
         {
-            ////synchronization of received data
-            //Stopwatch sw = new Stopwatch(); sw.Restart();
-            //while (((long) e.UserData) != numberInProgress)
-            //{
-            //    await Task.Delay(responseRecheckActiveNumberMs);
-            //    if (sw.Elapsed.TotalSeconds > 4)
-            //    {
-            //        string msg = "More than 5 sec exceeded !";
-
-            //        if ((long)e.UserData < numberInProgress) msg += "_responseOutdated5s";//response je uz outdated
-            //        else
-            //        {
-            //            msg += "_newerRequestWaitsForWorker5s";
-            //        }
-            //        Debug.WriteLine(msg);
-
-            //        //string datetime = DateTime.Now.ToString("yy-MM-dd,HH-mm-ss");
-            //        //File.WriteAllText(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\" + datetime + "_response.txt", msg + "\n");
-
-            //        if ((long)e.UserData < numberInProgress) return;//outdated Response--maybe also OnError ?
-
-            //        numberInProgress++;
-            //        sw.Restart();
-            //    }
-            //}
-            //Debug.WriteLine("=> ProceedResponse: "+(long)e.UserData);
-
             int statusCode = e?.HttpClient?.Response?.StatusCode ?? 0;
             string statusDescription = e?.HttpClient?.Response?.StatusDescription;
 
@@ -274,16 +247,12 @@ namespace TitaniumWebProxyWrapper
                 IgnoreCss && (e?.HttpClient?.Response?.ContentType?.Contains("text/css") ?? false)
                 )
             {
-                _numberInProgress++;
                 return;
             }
 
-            //Stopwatch sw= new Stopwatch(); sw.Restart();
             var method = e?.HttpClient?.Request?.Method?.ToUpper();
             if (method == "GET" || method == "POST")
             {
-                //Debug.WriteLine("TitaniumStatusCode: " + e.HttpClient.Response.StatusCode);
-
                 HeaderCollection requestHeaders = e?.HttpClient?.Response?.Headers;
                 var headers = HeadersToDictionary(requestHeaders);
                 string url = e.HttpClient.Request.Url;
@@ -296,18 +265,10 @@ namespace TitaniumWebProxyWrapper
                     //set
                     e?.HttpClient?.Response?.Headers?.Clear();
                     e?.HttpClient?.Response?.Headers?.AddHeaders(headers);
-                    if(e?.HttpClient?.Request?.Url != null) e.HttpClient.Request.Url = url;
+                    e.HttpClient.Request.Url = url;
                     if(e?.HttpClient?.Response?.HasBody ?? false) await Task.Run(() => e.SetResponseBodyString(html));
                 }
-
-                //if (sw.Elapsed.TotalMilliseconds > 10)//in case parsing will take a lot of time--log it
-                //{
-                //    string extraInfo = sw.Elapsed.TotalMilliseconds > 200 ? url + ", " + parameters : String.Empty;
-                //    Debug.WriteLine($"Response:{sw.Elapsed.TotalMilliseconds:F0}, {extraInfo}");
-                //}
             }
-
-            _numberInProgress++;
         }
 
         //help functions
