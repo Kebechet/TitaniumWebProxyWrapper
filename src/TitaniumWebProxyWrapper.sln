@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31424.327
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TitaniumWebProxyWrapper", "TitaniumWebProxyWrapper.csproj", "{642FED6F-4CB7-4994-B02E-544A37DD3F48}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TitaniumWebProxyWrapper", "TitaniumWebProxyWrapper\TitaniumWebProxyWrapper.csproj", "{642FED6F-4CB7-4994-B02E-544A37DD3F48}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Example", "Example\Example.csproj", "{FBF56AFB-CA74-4233-AD4F-D9CE194EF3CE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WrapperExample", "WrapperExample\WrapperExample.csproj", "{FBF56AFB-CA74-4233-AD4F-D9CE194EF3CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
