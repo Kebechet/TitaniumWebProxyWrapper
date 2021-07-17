@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Threading.Tasks;
 using TitaniumWebProxyWrapper;
 
 namespace WrapperExample
@@ -43,6 +42,5 @@ namespace WrapperExample
             //in case of error you can log such crashes here
             Console.WriteLine($"ERROR -> Message: {errorMessage}");
         }
-
     }
 }
