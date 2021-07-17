@@ -1,5 +1,7 @@
 # Titanium Web Proxy Wrapper
 
+*Tested on:* `Windows 10 19043 x64 with Titanium.Web.Proxy v3.1.1344 + .NET framework 3.8`
+
 This wrapper was created for simplification of work with Titanium web proxy from:
 
 https://github.com/justcoding121/titanium-web-proxy
@@ -64,4 +66,8 @@ class Program
 a) Your program will show certificate popups. If you don't want to see them just run program (or VisualStudio) as admin.
 
 b) If you have other proxy/VPN running you can experience some problems.
+
+
+
+
 
