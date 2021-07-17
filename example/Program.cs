@@ -13,26 +13,22 @@ namespace WrapperExample
             PacketSniffer ps = new PacketSniffer(IPAddress.Any);
             ps.SetListeningActions(OnRequest,OnResponse,OnError);
 
-
-            Task.Delay(100000).Wait();
+            Console.Read();
             ps.Dispose();
         }
 
 
-        private static bool OnRequest(ref Dictionary<string, string> headers, ref string url, ref string parameters, out bool abortRequest, ref string redirectUrl, ref string cancelRequestHtml)
+        private static void OnRequest(ref Dictionary<string, string> headers, ref string url, ref string parameters, ref string redirectUrl, ref string cancelRequestHtml)
         {
-            abortRequest = false;
             Console.WriteLine($"REQUEST -> Url: {url}");
-            return true;
         }
 
-        private static bool OnResponse(ref Dictionary<string, string> headers, ref string url, ref string parameters, ref string html)
+        private static void OnResponse(ref Dictionary<string, string> headers, ref string url, ref string parameters, ref string html)
         {
             Console.WriteLine($"RESPONSE -> Url: {url}");
-            return true;
         }
 
-        private static void OnError(string errorMessage, PacketType type, Dictionary<string, string> headers, string url)
+        private static void OnError(PacketType type, Dictionary<string, string> headers, string url, string errorMessage)
         {
             Console.WriteLine($"ERROR -> Message: {errorMessage}");
         }

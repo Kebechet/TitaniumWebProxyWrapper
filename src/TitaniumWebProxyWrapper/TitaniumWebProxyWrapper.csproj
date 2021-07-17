@@ -96,6 +96,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PacketData.cs" />
     <Compile Include="PacketType.cs" />
     <Compile Include="PacketSniffer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

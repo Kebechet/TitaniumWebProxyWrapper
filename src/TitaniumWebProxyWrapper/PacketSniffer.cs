@@ -22,8 +22,8 @@ namespace TitaniumWebProxyWrapper
 {
     public class PacketSniffer
     {
-        public delegate bool RequestDelegate(ref Dictionary<string, string> headers, ref string url, ref string parameters, out bool abortRequest, ref string redirectUrl, ref string cancelRequestHtml);
-        public delegate bool ResponseDelegate(ref Dictionary<string, string> headers, ref string url, ref string parameters, ref string html);
+        public delegate void RequestDelegate(ref Dictionary<string, string> headers, ref string url, ref string parameters, ref string redirectUrl, ref string cancelRequestHtml);
+        public delegate void ResponseDelegate(ref Dictionary<string, string> headers, ref string url, ref string parameters, ref string html);
         public delegate void ErrorDelegate(PacketType type, Dictionary<string, string> headers, string url, string errorMessage);
 
         private readonly ProxyServer _proxyServer;
@@ -205,68 +205,97 @@ namespace TitaniumWebProxyWrapper
         }
         public async Task OnRequest(object sender, SessionEventArgs e)
         {
-            if (IgnoreImages && (e?.HttpClient?.Request?.ContentType?.Contains("image/") ?? false)) return;
-            if (IgnoreJavaScriptRequests && (e?.HttpClient?.Request?.ContentType?.Contains("javascript") ?? false)) return;
+            //test
+            if (!e.HttpClient.Request.Url.Contains("sbotik"))
+            {
+                return;
+            }
 
-            var method = e?.HttpClient?.Request?.Method?.ToUpper();
+            bool isRequestImage = IgnoreImages && (e?.HttpClient.Request.ContentType?.Contains("image/") ?? false);
+            bool isRequestJavaScript = IgnoreJavaScriptRequests && (e?.HttpClient.Request.ContentType?.Contains("javascript") ?? false); //Content-Type: application/x-javascript
+            bool isRequestCss = IgnoreCss && (e?.HttpClient.Request.ContentType?.Contains("text/css") ?? false);
+            if (OnRequestAction == null || isRequestImage || isRequestJavaScript || isRequestCss) return;
+
+            var method = e?.HttpClient.Request.Method.ToUpper();
             if (method == "GET" || method == "POST" || method == "PUT" || method == "PATCH")
             {
-                string url = e?.HttpClient?.Request?.Url;
-                string parameters = (e?.HttpClient?.Request?.HasBody ?? false) ? await e.GetRequestBodyAsString() : "";
-                string redirectUrl = String.Empty;
-                string cancelRequestHtml = String.Empty; // To cancel a request with a custom HTML content
-                HeaderCollection requestHeaders = e?.HttpClient?.Request?.Headers;
-
-                if (OnRequestAction == null) return;
-
+                string url = e.HttpClient.Request.Url;
+                string parameters = e.HttpClient.Request.HasBody ? await e.GetRequestBodyAsString() : string.Empty;
+                string redirectUrl = string.Empty;
+                string cancelRequestHtml = string.Empty; //To cancel a request with a custom HTML content
+                HeaderCollection requestHeaders = e.HttpClient.Request.Headers;
                 var headers = HeadersToDictionary(requestHeaders);
 
-                bool wasSomethingChanged = OnRequestAction(ref headers, ref url, ref parameters,out bool abortRequest, ref redirectUrl, ref cancelRequestHtml);//headers,url,parameters,html,
-                if (wasSomethingChanged)
-                {
-                    if (redirectUrl != String.Empty) e.Redirect(redirectUrl);
-                    if (cancelRequestHtml != String.Empty) e.Ok(cancelRequestHtml);
-                    if (redirectUrl != String.Empty || cancelRequestHtml != String.Empty) return;
+                PacketData packetData = new PacketData(headers, url, parameters, redirectUrl, cancelRequestHtml);
+                OnRequestAction(ref headers, ref url, ref parameters, ref redirectUrl, ref cancelRequestHtml); //headers,url,parameters,html,
+                packetData.SetNewValues(headers, url, parameters, redirectUrl, cancelRequestHtml);
 
-                    //set
-                    e?.HttpClient?.Request?.Headers?.Clear();
-                    e?.HttpClient?.Request?.Headers?.AddHeaders(headers);
+                if (packetData.IsUrlChanged)
+                {
                     e.HttpClient.Request.Url = url;
-                    if(e?.HttpClient?.Request?.HasBody ?? false) await Task.Run(() => e.SetRequestBodyString(parameters));
+                }
+                if (packetData.AreParametersChanged && e.HttpClient.Request.HasBody) // maybe delete HasBody condition
+                {
+                    await Task.Run(() => e.SetRequestBodyString(parameters));
+                }
+                if (packetData.AreHeadersChanged)
+                {
+                    e.HttpClient.Request.Headers.Clear();
+                    e.HttpClient.Request.Headers.AddHeaders(headers);
+                }
+                if (packetData.IsRedirectUrlChanged)
+                {
+                    e.Redirect(redirectUrl); // is maybe same as changing URL
+                }
+                if (packetData.IsCancelRequestHtmlChanged)
+                {
+                    e.Ok(cancelRequestHtml);
                 }
             }
         }
         public async Task OnResponse(object sender, SessionEventArgs e)
         {
-            int statusCode = e?.HttpClient?.Response?.StatusCode ?? 0;
-            string statusDescription = e?.HttpClient?.Response?.StatusDescription;
-
-            if (OnResponseAction == null ||
-                IgnoreImages && (e?.HttpClient?.Response?.ContentType?.Contains("image/") ?? false) ||
-                IgnoreJavaScriptRequests && (e?.HttpClient?.Response?.ContentType?.Contains("javascript") ?? false) ||  //Content-Type: application/x-javascript
-                IgnoreCss && (e?.HttpClient?.Response?.ContentType?.Contains("text/css") ?? false)
-                )
+            //test
+            if (!e.HttpClient.Request.Url.Contains("sbotik"))
             {
                 return;
             }
 
-            var method = e?.HttpClient?.Request?.Method?.ToUpper();
+
+            bool isResponseImage = IgnoreImages && (e?.HttpClient.Response.ContentType?.Contains("image/") ?? false);
+            bool isResponseJavaScript = IgnoreJavaScriptRequests && (e?.HttpClient.Response.ContentType?.Contains("javascript") ?? false); //Content-Type: application/x-javascript
+            bool isResponseCss = IgnoreCss && (e?.HttpClient.Response.ContentType?.Contains("text/css") ?? false);
+            if (OnResponseAction == null || isResponseImage || isResponseJavaScript || isResponseCss) return;
+
+            var method = e?.HttpClient.Request.Method.ToUpper();
             if (method == "GET" || method == "POST")
             {
-                HeaderCollection requestHeaders = e?.HttpClient?.Response?.Headers;
-                var headers = HeadersToDictionary(requestHeaders);
                 string url = e.HttpClient.Request.Url;
                 string parameters = e.HttpClient.Request.HasBody ? await e.GetRequestBodyAsString() : "";
-                string html = (e?.HttpClient?.Response?.HasBody ?? false) ? await e.GetResponseBodyAsString() : "";
+                string html = e.HttpClient.Response.HasBody ? await e.GetResponseBodyAsString() : "";
+                HeaderCollection requestHeaders = e.HttpClient.Response.Headers;
+                var headers = HeadersToDictionary(requestHeaders);
 
-                bool wasSomethingChanged = OnResponseAction(ref headers, ref url, ref parameters, ref html);//headers,url,parameters,html,
-                if (wasSomethingChanged)
+                PacketData packetData = new PacketData(headers, url, parameters, html:html);
+                OnResponseAction(ref headers, ref url, ref parameters, ref html);
+                packetData.SetNewValues(headers, url, parameters, html:html);
+
+                if (packetData.IsUrlChanged)
                 {
-                    //set
-                    e?.HttpClient?.Response?.Headers?.Clear();
-                    e?.HttpClient?.Response?.Headers?.AddHeaders(headers);
                     e.HttpClient.Request.Url = url;
-                    if(e?.HttpClient?.Response?.HasBody ?? false) await Task.Run(() => e.SetResponseBodyString(html));
+                }
+                if (packetData.AreParametersChanged && (e.HttpClient.Request.HasBody)) // maybe delete HasBody condition
+                {
+                    await Task.Run(() => e.SetRequestBodyString(parameters));
+                }
+                if (packetData.AreHeadersChanged)
+                {
+                    e.HttpClient.Request.Headers.Clear();
+                    e.HttpClient.Request.Headers.AddHeaders(headers);
+                }
+                if (packetData.IsHtmlChanged && e.HttpClient.Response.HasBody)
+                {
+                    await Task.Run(() => e.SetResponseBodyString(html));
                 }
             }
         }
