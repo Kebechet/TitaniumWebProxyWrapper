@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -28,7 +29,8 @@ namespace TitaniumWebProxyWrapper
 
         private readonly ProxyServer _proxyServer;
         //private static readonly string _certFolder = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData); // it is Secured directory ! so Avast Ransomware shield is protecting it
-        private static readonly string _certFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        //private static readonly string _certFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        private static readonly string _certFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
         private const string CERT_PFX_FILE_NAME = "sCertificate.pfx";
         private const string CERT_PFX_PASS = "sCertPassword";
         public static string CertPfxPath => $@"{_certFolder}\{CERT_PFX_FILE_NAME}";
@@ -63,7 +65,7 @@ namespace TitaniumWebProxyWrapper
             _proxyServer.CertificateManager.OverwritePfxFile = true;
             _proxyServer.EnableConnectionPool = true; //test
             _proxyServer.ReuseSocket = true; //test
-            //ProxyServer.SupportedSslProtocols = SslProtocols.Ssl2 | SslProtocols.Ssl3 | SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12; //ssl are outdated
+            //_proxyServer.SupportedSslProtocols = SslProtocols.Ssl2 | SslProtocols.Ssl3 | SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12; //ssl are outdated
             _proxyServer.SupportedSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
             _proxyServer.MaxCachedConnections = 200;
@@ -257,7 +259,7 @@ namespace TitaniumWebProxyWrapper
             if (OnResponseAction == null || isResponseImage || isResponseJavaScript || isResponseCss) return;
 
             var method = e?.HttpClient.Request.Method.ToUpper();
-            if (method == "GET" || method == "POST")
+            if (method == "GET" || method == "POST" || method == "PUT" || method == "PATCH")
             {
                 string url = e.HttpClient.Request.Url;
                 string parameters = (string)(e.UserData ?? string.Empty);
