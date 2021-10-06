@@ -208,6 +208,7 @@ namespace TitaniumWebProxyWrapper
             bool isRequestImage = IgnoreImages && (e?.HttpClient.Request.ContentType?.Contains("image/") ?? false);
             bool isRequestJavaScript = IgnoreJavaScriptRequests && (e?.HttpClient.Request.ContentType?.Contains("javascript") ?? false); //Content-Type: application/x-javascript
             bool isRequestCss = IgnoreCss && (e?.HttpClient.Request.ContentType?.Contains("text/css") ?? false);
+            e.UserData = e.HttpClient.Request.HasBody ? await e.GetRequestBodyAsString() : null;
             if (OnRequestAction == null || isRequestImage || isRequestJavaScript || isRequestCss) return;
 
             var method = e?.HttpClient.Request.Method.ToUpper();
@@ -223,6 +224,7 @@ namespace TitaniumWebProxyWrapper
                 PacketData packetData = new PacketData(headers, url, parameters, redirectUrl, cancelRequestHtml);
                 OnRequestAction(ref headers, ref url, ref parameters, ref redirectUrl, ref cancelRequestHtml); //headers,url,parameters,html,
                 packetData.SetNewValues(headers, url, parameters, redirectUrl, cancelRequestHtml);
+                e.UserData = parameters;
 
                 if (packetData.IsUrlChanged)
                 {
@@ -258,7 +260,7 @@ namespace TitaniumWebProxyWrapper
             if (method == "GET" || method == "POST")
             {
                 string url = e.HttpClient.Request.Url;
-                string parameters = e.HttpClient.Request.HasBody ? await e.GetRequestBodyAsString() : "";
+                string parameters = (string)(e.UserData ?? string.Empty);
                 string html = e.HttpClient.Response.HasBody ? await e.GetResponseBodyAsString() : "";
                 HeaderCollection requestHeaders = e.HttpClient.Response.Headers;
                 var headers = HeadersToDictionary(requestHeaders);
