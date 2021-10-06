@@ -205,12 +205,6 @@ namespace TitaniumWebProxyWrapper
         }
         public async Task OnRequest(object sender, SessionEventArgs e)
         {
-            //test
-            if (!e.HttpClient.Request.Url.Contains("sbotik"))
-            {
-                return;
-            }
-
             bool isRequestImage = IgnoreImages && (e?.HttpClient.Request.ContentType?.Contains("image/") ?? false);
             bool isRequestJavaScript = IgnoreJavaScriptRequests && (e?.HttpClient.Request.ContentType?.Contains("javascript") ?? false); //Content-Type: application/x-javascript
             bool isRequestCss = IgnoreCss && (e?.HttpClient.Request.ContentType?.Contains("text/css") ?? false);
@@ -255,13 +249,6 @@ namespace TitaniumWebProxyWrapper
         }
         public async Task OnResponse(object sender, SessionEventArgs e)
         {
-            //test
-            if (!e.HttpClient.Request.Url.Contains("sbotik"))
-            {
-                return;
-            }
-
-
             bool isResponseImage = IgnoreImages && (e?.HttpClient.Response.ContentType?.Contains("image/") ?? false);
             bool isResponseJavaScript = IgnoreJavaScriptRequests && (e?.HttpClient.Response.ContentType?.Contains("javascript") ?? false); //Content-Type: application/x-javascript
             bool isResponseCss = IgnoreCss && (e?.HttpClient.Response.ContentType?.Contains("text/css") ?? false);
